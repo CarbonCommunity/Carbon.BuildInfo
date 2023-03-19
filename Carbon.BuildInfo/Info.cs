@@ -16,6 +16,7 @@ namespace Carbon.BuildInfo
 		{
 			public string Name { get; set; }
 			public bool EnabledByDefault { get; set; }
+			public bool Disabled { get; set; }
 		}
 	}
 }

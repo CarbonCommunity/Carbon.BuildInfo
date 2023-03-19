@@ -21,22 +21,25 @@ namespace Carbon.BuildInfo
     {
         static void Main ( string [] args )
         {
-			var carbon = CommandLineEx.GetArgumentResult("-carbon");
-			var output = CommandLineEx.GetArgumentResult("-o");
+			var carbonPath = CommandLineEx.GetArgumentResult("-carbon");
+			var outputPath = CommandLineEx.GetArgumentResult("-o");
 
-			var assembly = Assembly.LoadFrom(carbon);
-			var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
-			var version = assembly.GetName().Version.ToString();
-			var module = assembly.GetType("Carbon.Base.BaseModule");
-			var modules = new List<Info.Module>();
+			var carbon = Assembly.LoadFrom($"{carbonPath}.dll");
+			var modules = Assembly.LoadFrom($"{carbonPath}.Modules.dll");
+			var informationalVersion = carbon.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+			var version = carbon.GetName().Version.ToString();
+			var moduleList = new List<Info.Module>();
 
-			foreach(var type in assembly.GetTypes().Where(x => x.IsSubclassOf(module) && x.Namespace == "Carbon.Modules"))
+			foreach (var type in modules.GetTypes().Where(x => x.Namespace == "Carbon.Modules" && x.BaseType != null && x.BaseType.Name.Contains("CarbonModule")))
 			{
 				var act = System.Runtime.Serialization.FormatterServices.GetUninitializedObject(type);
-				modules.Add(new Info.Module
+
+				moduleList.Add(new Info.Module
 				{
 					Name = (string)type.GetProperty("Name").GetValue(act),
-					EnabledByDefault = (bool)type.GetProperty("EnabledByDefault").GetValue(act)
+					EnabledByDefault = (bool)type.GetProperty("EnabledByDefault").GetValue(act),
+					Disabled = (bool)type.GetProperty("Disabled").GetValue(act)
+
 				});
 			}
 
@@ -44,9 +47,10 @@ namespace Carbon.BuildInfo
 			{
 				InformationalVersion = informationalVersion,
 				Version = version,
-				Modules = modules
+				Modules = moduleList
 			}, Formatting.Indented);
-			File.WriteAllText(output, result);
+			File.WriteAllText(outputPath, result);
         }
-    }
+
+	}
 }
